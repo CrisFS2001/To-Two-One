@@ -441,6 +441,62 @@ const Game = (() => {
       }));
     }
 
+    // Inimigos Tenebre na fase "O Peso da Máquina" — 3 inimigos em V intercalados
+    if (idx === 4) {
+      const enemyW = 28 * SCALER + 4;
+      const enemyH = 40 * SCALER + 4;
+      
+      const vMinY = 4 * SCALER * TILE;
+      const vMaxY = 15 * SCALER * TILE - enemyH;
+      const minX = 2 * SCALER * TILE;
+      const maxX = 26 * SCALER * TILE - enemyW;
+
+      // Inimigo 1: inicia no topo-esquerda, desce diagonalmente para a direita
+      state.enemies.push(new Enemy({
+        x: 4 * SCALER * TILE, 
+        y: vMinY,
+        w: enemyW, 
+        h: enemyH, 
+        vx: 120,
+        vy: 150,
+        minX: minX,
+        maxX: maxX,
+        minY: vMinY,
+        maxY: vMaxY,
+        type: 'tenebre'
+      }));
+
+      // Inimigo 2: inicia na base-meio, sobe diagonalmente para a esquerda
+      state.enemies.push(new Enemy({
+        x: 14 * SCALER * TILE, 
+        y: vMaxY,
+        w: enemyW, 
+        h: enemyH, 
+        vx: -120,
+        vy: -150,
+        minX: minX,
+        maxX: maxX,
+        minY: vMinY,
+        maxY: vMaxY,
+        type: 'tenebre'
+      }));
+
+      // Inimigo 3: inicia no topo-direita, desce diagonalmente para a esquerda
+      state.enemies.push(new Enemy({
+        x: 24 * SCALER * TILE - enemyW, 
+        y: vMinY,
+        w: enemyW, 
+        h: enemyH, 
+        vx: -120,
+        vy: 150,
+        minX: minX,
+        maxX: maxX,
+        minY: vMinY,
+        maxY: vMaxY,
+        type: 'tenebre'
+      }));
+    }
+
 
     // ── Reset de instabilidade ao carregar fase ──────────
     // Valores ajustados para garantir que os efeitos sejam imediatamente visíveis!

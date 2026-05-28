@@ -66,7 +66,11 @@ const Renderer = (() => {
     crystal_idle: new Image(),
     crystal_active: new Image(),
     portal: new Image(),
-    platform_echo: new Image()
+    platform_echo: new Image(),
+    enemy_luxar_frame1: new Image(),
+    enemy_luxar_frame2: new Image(),
+    enemy_tenebre_frame1: new Image(),
+    enemy_tenebre_frame2: new Image()
   };
 
   const PATTERNS = {};
@@ -119,7 +123,11 @@ const Renderer = (() => {
       act3_plat: 'assets/act3_plat',
       platform_echo: 'assets/platform_echo',
       heavy_box: 'assets/heavy_box',
-      portal: 'assets_background/portal/portal'
+      portal: 'assets_background/portal/portal',
+      enemy_luxar_frame1: 'Sprites_Inimigos_Luxar/frame_1',
+      enemy_luxar_frame2: 'Sprites_Inimigos_Luxar/frame_2',
+      enemy_tenebre_frame1: 'Sprites_Inimigos_Tenebre/frame_1',
+      enemy_tenebre_frame2: 'Sprites_Inimigos_Tenebre/frame_2'
     };
 
     keys.forEach(key => {
@@ -2120,6 +2128,99 @@ const Renderer = (() => {
     ctx.restore();
   }
 
+  function drawEnemy(enemy, ox, oy, time) {
+    if (!enemy) return;
+    const cx = enemy.x + enemy.w / 2 + ox;
+    const cy = enemy.y + enemy.h / 2 + oy;
+
+    let img;
+    if (enemy.type === 'tenebre') {
+      img = enemy.currentFrame === 0 ? ASSETS.enemy_tenebre_frame1 : ASSETS.enemy_tenebre_frame2;
+    } else {
+      img = enemy.currentFrame === 0 ? ASSETS.enemy_luxar_frame1 : ASSETS.enemy_luxar_frame2;
+    }
+    
+    // Chroma Key automático para remover plano de fundo do PNG
+    if (img && img.complete && img.naturalWidth > 0) {
+      if (!img.processedBackground) {
+        try {
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = img.naturalWidth;
+          tempCanvas.height = img.naturalHeight;
+          const tempCtx = tempCanvas.getContext('2d');
+          tempCtx.drawImage(img, 0, 0);
+
+          const imgData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+          const data = imgData.data;
+
+          // Cor de fundo detectada no pixel (0,0)
+          const rBg = data[0];
+          const gBg = data[1];
+          const bBg = data[2];
+          const aBg = data[3];
+
+          if (aBg > 50) { // Se a cor no canto não for transparente
+            const tolerance = 40; // Tolerância para compressão JPG/PNG
+            for (let i = 0; i < data.length; i += 4) {
+              const r = data[i];
+              const g = data[i + 1];
+              const b = data[i + 2];
+              const a = data[i + 3];
+
+              if (Math.abs(r - rBg) < tolerance && 
+                  Math.abs(g - gBg) < tolerance && 
+                  Math.abs(b - bBg) < tolerance) {
+                data[i + 3] = 0; // Torna transparente
+              }
+            }
+            tempCtx.putImageData(imgData, 0, 0);
+
+            const processedImg = new Image();
+            processedImg.src = tempCanvas.toDataURL();
+            processedImg.processedBackground = true;
+
+            // Substitui o asset correspondente
+            if (enemy.type === 'tenebre') {
+              if (enemy.currentFrame === 0) {
+                ASSETS.enemy_tenebre_frame1 = processedImg;
+              } else {
+                ASSETS.enemy_tenebre_frame2 = processedImg;
+              }
+            } else {
+              if (enemy.currentFrame === 0) {
+                ASSETS.enemy_luxar_frame1 = processedImg;
+              } else {
+                ASSETS.enemy_luxar_frame2 = processedImg;
+              }
+            }
+            img = processedImg;
+          } else {
+            img.processedBackground = true;
+          }
+        } catch (e) {
+          console.warn("Chroma Key não pôde ser executado devido a restrições CORS (por exemplo, rodando via file://). Ignorando pós-processamento.");
+          img.processedBackground = true;
+        }
+      }
+    }
+
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    // Desenha o sprite exatamente como ele é (sem glow/plano de fundo de luz)
+    if (img && img.complete && img.naturalWidth > 0) {
+      // Ajusta o tamanho visual para o mesmo tamanho visual da Luxar/Tenebre
+      const destH = enemy.h * 3.5;
+      const destW = (img.naturalWidth / img.naturalHeight) * destH;
+      ctx.drawImage(img, -destW / 2, (enemy.h / 2) - destH, destW, destH);
+    } else {
+      ctx.fillStyle = enemy.type === 'tenebre' ? '#A85CFF' : '#C8A85C';
+      ctx.fillRect(-enemy.w / 2, -enemy.h / 2, enemy.w, enemy.h);
+    }
+
+    ctx.restore();
+  }
+
   function getDimensions() { return { W, H }; }
 
   return {
@@ -2129,6 +2230,6 @@ const Renderer = (() => {
     drawLevelUI, drawMergeEffect, drawCinematic,
     drawPostExplosion, drawFinalScreen,
     drawLightingPass, drawBloomPass, applyAtmosphere,
-    drawDialogue, drawGlitchEffect, drawInstabilityOverlay
+    drawDialogue, drawGlitchEffect, drawInstabilityOverlay, drawEnemy
   };
 })();

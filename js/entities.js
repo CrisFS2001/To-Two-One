@@ -671,3 +671,60 @@ class Portal {
     }
   }
 }
+
+// ─────────────────────────────────────────────
+// ENEMY — Patrulha horizontal/vertical animada
+// ─────────────────────────────────────────────
+class Enemy {
+  constructor(config) {
+    this.x = config.x;
+    this.y = config.y;
+    this.w = config.w ?? 64;
+    this.h = config.h ?? 64;
+    this.vx = config.vx ?? 100;
+    this.vy = config.vy ?? 0;       // Velocidade vertical (0 = só horizontal)
+    this.minX = config.minX;
+    this.maxX = config.maxX;
+    this.minY = config.minY ?? null; // Limite superior do patrulha vertical
+    this.maxY = config.maxY ?? null; // Limite inferior do patrulha vertical
+    this.type = config.type ?? 'luxar';
+    this.currentFrame = 0; // 0: frame 1 (indo p/ direita), 1: frame 2 (indo p/ esquerda)
+    this.facing = 1;
+  }
+
+  update(dt) {
+    // Movimento horizontal
+    this.x += this.vx * dt;
+
+    // Patrulha horizontal
+    if (this.x > this.maxX) {
+      this.x = this.maxX;
+      this.vx = -Math.abs(this.vx);
+    } else if (this.x < this.minX) {
+      this.x = this.minX;
+      this.vx = Math.abs(this.vx);
+    }
+
+    // Movimento vertical (patrulha em V)
+    if (this.vy !== 0 && this.minY !== null && this.maxY !== null) {
+      this.y += this.vy * dt;
+
+      if (this.y > this.maxY) {
+        this.y = this.maxY;
+        this.vy = -Math.abs(this.vy);
+      } else if (this.y < this.minY) {
+        this.y = this.minY;
+        this.vy = Math.abs(this.vy);
+      }
+    }
+
+    // Determina o frame com base no sentido do movimento horizontal
+    if (this.vx > 0) {
+      this.facing = 1;
+      this.currentFrame = 0; // frame 1 (direita)
+    } else {
+      this.facing = -1;
+      this.currentFrame = 1; // frame 2 (esquerda)
+    }
+  }
+}

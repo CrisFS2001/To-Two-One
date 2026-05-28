@@ -20,7 +20,7 @@ const LEVELS = [
       [2, 12, 6, 1], [20, 10, 6, 1], [4, 6, 8, 1], [18, 4, 8, 1],
     ],
     players: {
-      light: { col: 4, row: 14 },
+      light: { col: 4, row: 15 },
       heavy: { col: 0, row: 0 },
     },
     crystals: [

@@ -76,6 +76,8 @@ const Game = (() => {
     crystals: [],      // Novos elementos
     echoPlatforms: [], // Novos elementos
     portal: null,
+    enemies: [],
+
 
     // Flags
     merging: false,
@@ -214,6 +216,8 @@ const Game = (() => {
     state.lastJumpHeavy = false;
     state.tabWasDown = false;
     state.activePlayer = data.activeChar || 'light';
+    state.enemies = [];
+
 
     const SCALER = 2; // Faz o mundo ter 30x2x32=1920px de largura, preenchendo a tela
     const cols = 30 * SCALER, rows = 19 * SCALER;
@@ -266,6 +270,177 @@ const Game = (() => {
       x: c.col * SCALER * TILE,
       y: c.row * SCALER * TILE,
     }));
+
+    // Inimigo Luxar na fase "O Eco da Luz"
+    if (idx === 0) {
+      // Luxar inicia em col 4, row 15 (no chão). 
+      // Primeiro inimigo: 2 posições acima é row 13.
+      const enemyY = 13 * SCALER * TILE - (32 * SCALER + 4);
+      
+      // Spawn do primeiro inimigo na esquerda (col 4) andando para a direita (4px maior que a Luxar)
+      state.enemies.push(new Enemy({
+        x: 4 * SCALER * TILE, 
+        y: enemyY,
+        w: 24 * SCALER + 4, 
+        h: 32 * SCALER + 4, 
+        vx: 150, 
+        minX: 2 * SCALER * TILE, 
+        maxX: 28 * SCALER * TILE - (24 * SCALER + 4), 
+        type: 'luxar'
+      }));
+
+      // Segundo inimigo: mais 3 posições acima é row 7.
+      const enemy2Y = 7 * SCALER * TILE - (32 * SCALER + 4);
+
+      // Spawn do segundo inimigo na direita (col 26) andando para a esquerda (4px maior que a Luxar)
+      state.enemies.push(new Enemy({
+        x: 26 * SCALER * TILE - (24 * SCALER + 4), 
+        y: enemy2Y,
+        w: 24 * SCALER + 4, 
+        h: 32 * SCALER + 4, 
+        vx: -150, // Inicia andando para a esquerda
+        minX: 2 * SCALER * TILE, 
+        maxX: 28 * SCALER * TILE - (24 * SCALER + 4), 
+        type: 'luxar'
+      }));
+    }
+
+    // Inimigos Tenebre na fase "Atravessando o Abismo" — Patrulha em V (diagonal)
+    if (idx === 1) {
+      const enemyW = 28 * SCALER + 4;
+      const enemyH = 40 * SCALER + 4;
+      
+      // Limites verticais do V (de row 4 até row 13)
+      const vMinY = 4 * SCALER * TILE;
+      const vMaxY = 13 * SCALER * TILE - enemyH;
+
+      // Primeiro inimigo: começa no topo-esquerda, desce diagonalmente para a direita (perna do V)
+      state.enemies.push(new Enemy({
+        x: 4 * SCALER * TILE, 
+        y: vMinY,
+        w: enemyW, 
+        h: enemyH, 
+        vx: 120,    // Move para a direita
+        vy: 150,    // Desce (início da perna do V)
+        minX: 2 * SCALER * TILE, 
+        maxX: 28 * SCALER * TILE - enemyW, 
+        minY: vMinY,
+        maxY: vMaxY,
+        type: 'tenebre'
+      }));
+
+      // Segundo inimigo: começa no topo-direita, desce diagonalmente para a esquerda (outra perna do V)
+      state.enemies.push(new Enemy({
+        x: 26 * SCALER * TILE - enemyW, 
+        y: vMinY,
+        w: enemyW, 
+        h: enemyH, 
+        vx: -120,   // Move para a esquerda
+        vy: 150,    // Desce (início da perna do V)
+        minX: 2 * SCALER * TILE, 
+        maxX: 28 * SCALER * TILE - enemyW, 
+        minY: vMinY,
+        maxY: vMaxY,
+        type: 'tenebre'
+      }));
+    }
+
+    // Inimigos Tenebre na fase "Peso do Passado"
+    if (idx === 2) {
+      const enemyW = 28 * SCALER + 4;
+      const enemyH = 40 * SCALER + 4;
+      // Janela de patrulha: de col 6 (2 posições à frente do Tenebre) até o portão (col 21)
+      const patrolMinX = 6 * SCALER * TILE;
+      const gateX = 21 * SCALER * TILE;
+      const patrolMaxX = gateX - enemyW;
+
+      // Inimigo 1: inicia em col 6 (2 à frente do Tenebre), na mesma linha onde Tenebre fica de pé
+      // Tenebre cai na plataforma em row 12 — pés do inimigo devem tocar row 12
+      const enemy1Y = 12 * SCALER * TILE - enemyH; // Pés na plataforma (row 12), mesma linha do Tenebre
+      state.enemies.push(new Enemy({
+        x: patrolMinX, 
+        y: enemy1Y,
+        w: enemyW, 
+        h: enemyH, 
+        vx: 150, 
+        minX: patrolMinX, 
+        maxX: patrolMaxX, 
+        type: 'tenebre'
+      }));
+
+      // Inimigo 2: inicia do lado oposto (perto do portão), patrulha em V na mesma janela
+      const vMinY = 4 * SCALER * TILE;
+      const vMaxY = 18 * SCALER * TILE - enemyH;
+
+      state.enemies.push(new Enemy({
+        x: patrolMaxX,      // Começa do lado oposto (junto ao portão)
+        y: vMinY,
+        w: enemyW, 
+        h: enemyH, 
+        vx: -120,           // Inicia andando para a esquerda (lado oposto)
+        vy: 150,            // Movimento vertical para padrão em V
+        minX: patrolMinX, 
+        maxX: patrolMaxX, 
+        minY: vMinY,
+        maxY: vMaxY,
+        type: 'tenebre'
+      }));
+    }
+
+    // Inimigos Luxar na fase "O Apoio Silencioso"
+    if (idx === 3) {
+      const enemyW = 24 * SCALER + 4;
+      const enemyH = 32 * SCALER + 4;
+
+      // Primeiro inimigo: do lado esquerdo da parede, patrulha no chão (row 18)
+      state.enemies.push(new Enemy({
+        x: 6 * SCALER * TILE, 
+        y: 18 * SCALER * TILE - enemyH,
+        w: enemyW, 
+        h: enemyH, 
+        vx: 150, 
+        minX: 6 * SCALER * TILE, 
+        maxX: 11 * SCALER * TILE, 
+        type: 'luxar'
+      }));
+
+      // Novo inimigo esquerdo: 10 posições acima (row 8)
+      state.enemies.push(new Enemy({
+        x: 6 * SCALER * TILE, 
+        y: 8 * SCALER * TILE - enemyH,
+        w: enemyW, 
+        h: enemyH, 
+        vx: -150, // direção alternada para dinamismo
+        minX: 6 * SCALER * TILE, 
+        maxX: 11 * SCALER * TILE, 
+        type: 'luxar'
+      }));
+
+      // Segundo inimigo: do lado direito da parede, patrulha no chão (row 18)
+      state.enemies.push(new Enemy({
+        x: 20 * SCALER * TILE, 
+        y: 18 * SCALER * TILE - enemyH,
+        w: enemyW, 
+        h: enemyH, 
+        vx: -150, 
+        minX: 16 * SCALER * TILE, 
+        maxX: 27 * SCALER * TILE, 
+        type: 'luxar'
+      }));
+
+      // Novo inimigo direito: 10 posições acima (row 8)
+      state.enemies.push(new Enemy({
+        x: 20 * SCALER * TILE, 
+        y: 8 * SCALER * TILE - enemyH,
+        w: enemyW, 
+        h: enemyH, 
+        vx: 150, // direção alternada para dinamismo
+        minX: 16 * SCALER * TILE, 
+        maxX: 27 * SCALER * TILE, 
+        type: 'luxar'
+      }));
+    }
+
 
     // ── Reset de instabilidade ao carregar fase ──────────
     // Valores ajustados para garantir que os efeitos sejam imediatamente visíveis!
@@ -791,6 +966,36 @@ const Game = (() => {
     // Atualiza caixas
     for (const box of state.boxes) box.update(dt, state.tiles);
 
+    // Atualiza inimigos
+    if (state.enemies) {
+      for (const enemy of state.enemies) {
+        enemy.update(dt);
+        
+        // Se a Luxar encostar no inimigo, a fase reinicia
+        if (state.light.alive !== false && Physics.overlaps(state.light, enemy)) {
+          // Regra especial: no level 3 (O Apoio Silencioso), o primeiro inimigo (lado esquerdo)
+          // não pode se chocar com a Luxar enquanto a plataforma/elevador estiver subindo
+          if (state.currentLevel === 3 && enemy.x < 12 * 2 * 32) {
+            const elev = state.platforms.find(p => p.id === 'elev_lux');
+            if (elev && elev.active && elev._t < 1) {
+              console.log('[Enemy] Colisão ignorada: elevador subindo.');
+              continue;
+            }
+          }
+          console.log('[Enemy] Colisão com a Luxar detectada! Reiniciando a fase...');
+          restartLevel();
+          return;
+        }
+        // Se o Tenebre encostar no inimigo, a fase reinicia
+        if (state.heavy.alive !== false && Physics.overlaps(state.heavy, enemy)) {
+          console.log('[Enemy] Colisão com o Tenebre detectada! Reiniciando a fase...');
+          restartLevel();
+          return;
+        }
+      }
+    }
+
+
     // Portal (passa players para detecção de sons de entrada)
     state.portal.update(dt, [state.light, state.heavy]);
 
@@ -1063,6 +1268,14 @@ const Game = (() => {
     if (state.light.alive !== false) Renderer.drawPlayer(state.light, ox, oy, state.time, state.activePlayer === 'light');
     if (state.heavy.alive !== false) Renderer.drawPlayer(state.heavy, ox, oy, state.time, state.activePlayer === 'heavy');
 
+    // Inimigos
+    if (state.enemies) {
+      for (const enemy of state.enemies) {
+        Renderer.drawEnemy(enemy, ox, oy, state.time);
+      }
+    }
+
+
     // Diálogos
     if (state.light.dialogue.text) Renderer.drawDialogue(state.light, ox, oy);
     if (state.heavy.dialogue.text) Renderer.drawDialogue(state.heavy, ox, oy);
@@ -1095,6 +1308,8 @@ const Game = (() => {
       state.portal,
       ...state.echoPlatforms.filter(ep => ep.active && ep.visible),
       state.lumaBridge && state.lumaBridge.visible ? {
+
+
         x: state.lumaBridge.x + state.lumaBridge.w / 2,
         y: state.lumaBridge.y,
         w: 0, h: 0,
